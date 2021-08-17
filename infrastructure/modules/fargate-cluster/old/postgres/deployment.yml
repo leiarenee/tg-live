@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:11
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: initsql
+          mountPath: /docker-entrypoint-initdb.d/
+        env:
+        - name: POSTGRES_PASSWORD
+          value: postgres
+        - name : POSTGRES_DB
+          value: bettermarks_dev
+        - name : PGDATA
+          value: /var/lib/postgresql/data/pgdata
+      volumes: 
+      - name: initsql
+        configMap:
+          name: initsql

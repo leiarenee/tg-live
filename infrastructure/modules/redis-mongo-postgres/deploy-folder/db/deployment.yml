@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: remonpos
+  labels:
+    app: remonpos
+spec:
+  selector:
+    matchLabels:
+      app: remonpos
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: remonpos
+        antiAffinity: review
+    spec:
+      nodeSelector:
+        beta.kubernetes.io/instance-type: t2.micro
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: antiAffinity
+                  operator: In
+                  values:
+                  - review
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: redis
+        image: redis
+        # resources:
+        #   limits:
+        #     cpu: 200m
+        #     memory: 150M
+        #   requests:
+        #     cpu: 200m
+        #     memory: 150M
+        ports:
+        - containerPort: 6379
+      - name: mongo
+        image: mongo
+        ports:
+        - containerPort: 27017
+        # resources:
+        #     limits:
+        #       cpu: 200m
+        #       memory: 150M
+        #     requests:
+        #       cpu: 200m
+        #       memory: 150M
+      - name: postgres
+        image: postgres:11
+        ports:
+        - containerPort: 5432
+        # resources:
+        #   limits:
+        #     cpu: 200m
+        #     memory: 150M
+        #   requests:
+        #     cpu: 200m
+        #     memory: 150M
+        volumeMounts:
+        - name: initsql
+          mountPath: /docker-entrypoint-initdb.d/
+        env:
+        - name: POSTGRES_PASSWORD
+          value: postgres
+        - name : POSTGRES_DB
+          value: bettermarks_dev
+        - name : PGDATA
+          value: /var/lib/postgresql/data/pgdata
+      volumes: 
+      - name: initsql
+        configMap:
+          name: initsql
+
+

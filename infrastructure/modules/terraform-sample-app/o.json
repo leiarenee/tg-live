@@ -1,0 +1,74 @@
+{
+  "deployment": {
+    "spec": {
+      "template": {
+        "metadata": {
+          "isim": "bircan",
+          "labels": {
+            "application": "my-app"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "liveness_probe": {
+                "httpGet": {
+                  "httpHeader": {
+                    "name": "X-Custom-Header",
+                    "value": "Awesome"
+                  },
+                  "path": "/",
+                  "port": 80
+                },
+                "initialDelaySeconds": 3,
+                "periodSeconds": 3
+              },
+              "resources": {
+                "limits": {
+                  "cpu": "0.5",
+                  "memory": "512Mi"
+                },
+                "requests": {
+                  "cpu": "250m",
+                  "memory": "50Mi"
+                }
+              },
+              "image": "277341187485.dkr.ecr.eu-central-1.amazonaws.com/feature-tests-my-feature-my-app:ts-2020-04-12T09-13-28Z",
+              "name": "my-app"
+            }
+          ]
+        }
+      },
+      "replicas": 1,
+      "selector": {
+        "matchLabels": {
+          "application": "my-app"
+        }
+      }
+    },
+    "metadata": {
+      "labels": {
+        "application": "my-app"
+      },
+      "name": "my-app",
+      "namespace": "my-feature"
+    }
+  },
+  "service": {
+    "spec": {
+      "attr": 1,
+      "template": {
+        "name": "myService",
+        "falan": {
+          "filan": {
+            "run": {
+              "get": {
+                "first": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

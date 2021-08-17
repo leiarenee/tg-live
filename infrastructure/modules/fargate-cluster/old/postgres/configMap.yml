@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: initsql
+data:
+  init.sql: |
+    CREATE SCHEMA migrations

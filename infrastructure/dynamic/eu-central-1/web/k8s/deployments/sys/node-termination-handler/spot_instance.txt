@@ -1,0 +1,12 @@
+https://github.com/terraform-aws-modules/terraform-aws-eks/blob/master/examples/spot_instances/main.tf
+
+https://github.com/terraform-aws-modules/terraform-aws-eks/blob/master/docs/spot-instances.md
+
+https://github.com/aws/aws-node-termination-handler
+
+https://aws.amazon.com/ec2/spot/getting-started/
+
+https://aws.amazon.com/ec2/spot/pricing/
+
+https://aws.amazon.com/ec2/spot/instance-advisor/
+
