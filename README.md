@@ -20,6 +20,6 @@ Please refer to following documents to get more insight.
 
 ## How It Works? ##
 
-Root folder for the dynamic cloud infrastructures is `infrastructure/dynamic`. [terragrunt.hcl](infrastructure/dynamic/terragrunt.hcl) under this folder is used as a parent template file to be included in each configuration where
+Root folder for all of the infrastructures is `infrastructure`. [terragrunt.hcl](infrastructure/terragrunt.hcl) under this folder is used as a parent template file to be included in each configuration where
 every sub folder which includes a `terragrunt.hcl` file is a source for a separate infrastructure.
 
