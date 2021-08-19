@@ -1,110 +1,60 @@
 # Set account-wide variables. These are automatically pulled in to configure the remote state bucket in the root
 # terragrunt.hcl configuration.
 locals {
-  branch = {
-    # ------- Main ----------
-
-    # Template
-    main = {
-      account_name   = "main"
-      aws_account_id = "592115245551"
-      aws_profile    = "test-592115245551"
-      bucket_suffix  = ""
-
-      parameters = {
-        DOMAIN         = "prod.bmdev.me"
-        DNS_ZONE_ID    = "Z00140663TMWUSEB0C8DN"
-        CLUSTER        = "main-production-cluster"
-      }
-    }
-
-    # ------- BI ----------
-
-    # BI Production 1
-    bi_production_1 = {
-      account_name   = "bi-production-1"
-      aws_account_id = "592115245551"
-      aws_profile    = "test-592115245551"
-      bucket_suffix  = ""
-
-      parameters = {
-        DOMAIN         = "prod.bmdev.me"
-        DNS_ZONE_ID    = "Z00140663TMWUSEB0C8DN"
-        CLUSTER        = "main-production-cluster"
-      }
-    }
-    
-    # BI Production 2
-    bi_production_2 = {
-      account_name   = "bi-production-2"
-      aws_account_id = "592115245551"
-      aws_profile    = "test-592115245551"
-      bucket_suffix  = ""
-
-      parameters = {
-        DOMAIN         = "prod.bmdev.me"
-        DNS_ZONE_ID    = "Z00140663TMWUSEB0C8DN"
-        CLUSTER        = "main-production-cluster"
-      }
-    }
-
-    # BI Staging
-    bi_staging = {
-      account_name   = "bi-staging"
-      aws_account_id = "592115245551"
-      aws_profile    = "test-592115245551"
-      bucket_suffix  = ""
-
-      parameters = {
-        DOMAIN         = "test.bmdev.me"
-        DNS_ZONE_ID    = "Z00140663TMWUSEB0C8DN"
-        CLUSTER        = "shared-testing-cluster"
-      }
-    }
 
   # ------- Application ----------
 
-  # Application Production 1
-    app_production_1 = {
-      account_name   = "bi-production-1"
-      aws_account_id = "592115245551"
-      aws_profile    = "test-592115245551"
-      bucket_suffix  = ""
-
-      parameters = {
-        DOMAIN         = "prod.bmdev.me"
-        DNS_ZONE_ID    = "Z00140663TMWUSEB0C8DN"
-        CLUSTER        = "main-production-cluster"
-      }
+  # Application Testing
+  staging = {
+    account_name   = "testing"
+    aws_account_id = "553688522943"
+    aws_profile    = "testing"
+    bucket_suffix  = ""
+    parameters = {
+      DOMAIN         = "staging.dev"
+      DNS_ZONE_ID    = "Z00140663TMWUSEB0C8DN"
+      CLUSTER        = "testing-cluster"
     }
-    
-    # Application Production 2
-    app_production_2 = {
-      account_name   = "bi-production-2"
-      aws_account_id = "592115245551"
-      aws_profile    = "test-592115245551"
-      bucket_suffix  = ""
-
-      parameters = {
-        DOMAIN         = "prod.bmdev.me"
-        DNS_ZONE_ID    = "Z00140663TMWUSEB0C8DN"
-        CLUSTER        = "main-production-cluster"
-      }
-    }
-
-    # Application Staging
-    app_staging = {
-      account_name   = "bi-staging"
-      aws_account_id = "592115245551"
-      aws_profile    = "test-592115245551"
-      bucket_suffix  = ""
-
-      parameters = {
-        DOMAIN         = "test.bmdev.me"
-        DNS_ZONE_ID    = "Z00140663TMWUSEB0C8DN"
-        CLUSTER        = "shared-testing-cluster"
-      }
-    }
-
   }
+
+  # Application Staging
+  staging = {
+    account_name   = "staging"
+    aws_account_id = "518854297938"
+    aws_profile    = "staging"
+    bucket_suffix  = ""
+    parameters = {
+      DOMAIN         = "staging.dev"
+      DNS_ZONE_ID    = "Z00140663TMWUSEB0C8DN"
+      CLUSTER        = "staging-cluster"
+    }
+  }
+
+  # Application Production 1
+  production1 = {
+    account_name   = "production1"
+    aws_account_id = "009403416359"
+    aws_profile    = "prod1"
+    bucket_suffix  = ""
+    parameters = {
+      DOMAIN         = "prod1.dev"
+      DNS_ZONE_ID    = "Z00140663TMWUSEB0C8DN"
+      CLUSTER        = "production1-cluster"
+    }
+  }
+    
+  # Application Production 2
+  production2 = {
+    account_name   = "production2"
+    aws_account_id = "230794785515"
+    aws_profile    = "prod2"
+    bucket_suffix  = ""
+    parameters = {
+      DOMAIN         = "prod2.dev"
+      DNS_ZONE_ID    = "Z00140663TMWUSEB0C8DN"
+      CLUSTER        = "production2-cluster"
+    }
+  }
+
 }
+

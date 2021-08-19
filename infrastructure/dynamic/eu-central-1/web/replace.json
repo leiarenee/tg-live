@@ -1,6 +1,6 @@
 {
-  "REPO":"https://github.com/leiarenee/tmnl-app.git",
-  "REPO_SSH":"git@github.com:leiarenee/tmnl-app.git",
+  "REPO":"https://github.com/leiarenee/tmnl-api.git",
+  "REPO_SSH":"git@github.com:leiarenee/tmnl-api.git",
   "BRANCH":"main",
   "APP_NAME":"flask-api",
   "USE_REMOTE_CACHE":"true",

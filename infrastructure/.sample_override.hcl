@@ -16,8 +16,8 @@ locals {
     bucket_suffix  = "" 
     
     parameters = {
-      DOMAIN         = "<my_name>.bmdev.me"
-      DNS_ZONE_ID    = "<my_hosting_zone_id>" # from Route53
+      DOMAIN         = "<my_name>.<my_domain>"
+      DNS_ZONE_ID    = "<my_hosting_zone_id>"
       CLUSTER        = "<my-cluster-name>"
     }
   }
