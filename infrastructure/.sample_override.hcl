@@ -6,19 +6,19 @@ locals {
   override_active = true
 
   # Config name - Chose from below
-  config = "<my_name>"
+  config = "<config_name>"
 
   # My Account
-  <my_name> = {
-    account_name   = "<my_name>"
-    aws_account_id = "<my_aws_account_id>"
-    aws_profile    = "<my_name-my_aws_account_id>"
+  <config_name> = {
+    account_name   = "<aws_account_name>"
+    aws_account_id = "<aws_account_id>"
+    aws_profile    = "<aws-profile-name>"
     bucket_suffix  = "" 
     
     parameters = {
-      DOMAIN         = "<my_name>.<my_domain>"
-      DNS_ZONE_ID    = "<my_hosting_zone_id>"
-      CLUSTER        = "<my-cluster-name>"
+      DOMAIN         = "<sub_domain>.<domain>"
+      DNS_ZONE_ID    = "<hosting_zone_id>"
+      CLUSTER        = "<cluster-name>"
     }
   }
 
