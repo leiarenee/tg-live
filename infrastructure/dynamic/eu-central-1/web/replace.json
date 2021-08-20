@@ -3,7 +3,7 @@
   "REPO_SSH":"git@github.com:leiarenee/tmnl-api.git",
   "BRANCH":"main",
   "APP_NAME":"flask-api",
-  "USE_REMOTE_CACHE":"false",
+  "USE_REMOTE_CACHE":"true",
   "INVALIDATE_REMOTE_CACHE":"false",
   "CONTAINER_PORT":8000,
   "EXTERNAL_PORT":80,
