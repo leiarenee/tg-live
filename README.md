@@ -149,8 +149,267 @@ Source folder for Codebuild is located under [web/build/api/flask](infrastructur
 
 ## The Clustering Stage - Kubernetes by AWS EKS ##
 
-A Custom VPC is created first and parameters are passed in to cluster creation stage. All of the infrastructure code related to the kubernetes cluster such as EKS, Autoscaling, deployments and services are located under [k8s](infrastructure/dynamic/eu-central-1/web/k8s) folder. A well maintained repository in Terraform registry [Terraform-Aws-Eks](https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest) is used as base library for creation of kubernetes cluster. This library is great since it allows us significant properties such as using spot instances out of the box. While it works smoothly most of the time there is known issue with cluster authorization which is discussed here. [issues](https://github.com/terraform-aws-modules/terraform-aws-eks/issues/911#issuecomment-761715025). You may find out how this issue is handled here in this system, within the above link to provide a error prone, reliable cluster creation stage. Spot instances are offered from AWS's sparse resources and decrease worker node costs up to %60-%70. It is very valuable and fits into our temporary testing clusters perfectly. They are claimed back by AWS is sparse resource is not available any more but that will be not problem in our case since these environments are already used for testing purposes. More over [Node Termination Handler](infrastructure/dynamic/eu-central-1/web/k8s/deployments/sys/node-termination-handler) K8s Application in our system is notified by AWS in such cases to warn us to make necessary precautions such as initiating a new worker node but this time an `on-demand instance` rather than from `spot instance pool`. Off course production and shared staging clusters will be sourced from different machine configurations which does not have a risk of termination. As I've mentioned early before, different configuration options can be assigned to different environments including machine types. Autoscaling of the cluster is handled by [Cluster Autoscaler](infrastructure/dynamic/eu-central-1/web/k8s/deployments/sys/cluster-auto-scaler) and is provided by kubernetes. Other basic helper applications such as [Metrics Server](infrastructure/dynamic/eu-central-1/web/k8s/deployments/sys/metrics-server) and [Kubernetes Dashboard](infrastructure/dynamic/eu-central-1/web/k8s/deployments/sys/kubernetes-dashboard) are deployed after a successful cluster creation.
+A Custom VPC is created first and parameters are passed in to cluster creation stage. All of the infrastructure code related to the kubernetes cluster such as EKS, Autoscaling, deployments and services are located under [k8s](infrastructure/dynamic/eu-central-1/web/k8s) folder. A well maintained repository in Terraform registry [Terraform-Aws-Eks](https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest) is used as base library for creation of kubernetes cluster. This library is great since it allows us significant properties such as using spot instances out of the box. While it works smoothly most of the time there is known issue with cluster authorization which is discussed here. [issues](https://github.com/terraform-aws-modules/terraform-aws-eks/issues/911#issuecomment-761715025). You may find out how this issue is handled here in this system, within the above link to provide a error prone, reliable cluster creation stage. Spot instances are offered from AWS's sparse resources and decrease worker node costs up to %60-%70. It is very valuable and fits into our temporary testing clusters perfectly. They are claimed back by AWS if sparse resource is not available any more but that will be not problem in our case since these environments are already used for testing purposes. More over [Node Termination Handler](infrastructure/dynamic/eu-central-1/web/k8s/deployments/sys/node-termination-handler) K8s Application in our system is notified by AWS in such cases to warn us to make necessary precautions such as initiating a new worker node but this time an `on-demand instance` rather than from `spot instance pool`. Off course production and shared staging clusters will be sourced from different machine configurations which does not have a risk of termination. As I've mentioned early before, different configuration options can be assigned to different environments including machine types. Autoscaling of the cluster is handled by [Cluster Autoscaler](infrastructure/dynamic/eu-central-1/web/k8s/deployments/sys/cluster-auto-scaler) and is provided by kubernetes. Other basic helper applications such as [Metrics Server](infrastructure/dynamic/eu-central-1/web/k8s/deployments/sys/metrics-server) and [Kubernetes Dashboard](infrastructure/dynamic/eu-central-1/web/k8s/deployments/sys/kubernetes-dashboard) are deployed after a successful cluster creation.
 
 ## Application Deployment Stage ##
 
-We have now a pre-built image stored in our ECR repository and a running K8s cluster. It is time to kick off deploying our applications and services but before we should create our namespace since all subsequent application related infrastructures will be installed under our k8s namespace. Source files for name space creation are located under [k8s/namespace](infrastructure/dynamic/eu-central-1/web/k8s/namespace). 
+We have now a pre-built image stored in our ECR repository and a running K8s cluster. It is time to kick off deploying our applications and services but before we should create our namespace since all subsequent application related infrastructures will be installed under our k8s namespace. Source files for name space creation are located under [k8s/namespace](infrastructure/dynamic/eu-central-1/web/k8s/namespace).
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: application
+  labels:
+    name: application
+```
+
+[Kubernetes Service](https://kubernetes.io/docs/concepts/services-networking/service/) is an abstraction which defines endpoints and assigning them to pods by means of selectors. Source files for the api is located under [k8s/services/api](infrastructure/dynamic/eu-central-1/web/k8s/services/api/). Two types of service is defined. Internal and External. Internal services are for internal cluster communication. On the other hand external services are accessible from outside the cluster and creates an external loadbalancer. When it is created terraform outputs a long domain name for the load balancer. This domain name is used to create a cname in Route53 zone to assign a custom dns name to the application.
+
+Example External Kubernetes Service Description:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APP_NAME}-external
+  labels:
+    service: ${APP_NAME}
+spec:
+  ports:
+  - protocol: TCP
+    port: ${EXTERNAL_PORT}
+    targetPort: ${CONTAINER_PORT}
+  selector:
+    app: ${APP_NAME}
+  type: LoadBalancer
+```
+
+In the final stage our application will be deployed to the cluster. We use [Kubernetes Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) for this purpose. It is a new version of `replica sets`, providing us easy to manage and scale set of pods in desired amount. Source files for the api deployment are located under [k8s/deployment/api](infrastructure/dynamic/eu-central-1/web/k8s/deployments/api).
+
+Example Deployment Description:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${APP_NAME}
+  labels:
+    app: ${APP_NAME}
+spec:
+  selector:
+    matchLabels:
+      app: ${APP_NAME}
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: ${APP_NAME}
+        group: carte
+    spec:
+      containers:
+      - name: ${APP_NAME}
+        image: ${IMAGE_URL}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: ${CONTAINER_PORT}
+        resources:
+            requests:
+              cpu: 500m
+              memory: 1000M
+            limits:
+              cpu: 500m
+              memory: 1000M
+        env:
+        - name: PYTHONPATH
+          value: "src"
+```
+
+When run, kubernetes pull the image from ECR repository if it is not already pulled before (`imagePullPolicy: IfNotPresent`). Then runs the image in docker container environment according to the settings defined under `template.spec.containers` definitions. Before execution each definition containing `${VAR}` is replaced with their content in replacement file.
+
+## Accessing the cluster ##
+
+Update your `kubeconfig` file with following command:
+
+```sh
+aws eks update-kubeconfig --name k8s-cluster
+```
+
+Output:
+
+```sh
+Updated context arn:aws:eks:eu-central-1:<aws_account_id>:cluster/k8s-cluster in /Users/<user>/.kube/config
+```
+
+Run following command to get pods:
+
+```sh
+kubectl get pods --all-namespaces
+```
+
+Output:
+
+```sh
+NAMESPACE              NAME                                        READY   STATUS    RESTARTS   AGE
+application            flask-api-6b8d6557b4-b988z                  1/1     Running   0          103s
+kube-system            aws-node-5wls5                              1/1     Running   0          62m
+kube-system            aws-node-98wlk                              1/1     Running   0          61m
+kube-system            aws-node-nzrrh                              1/1     Running   0          62m
+kube-system            cluster-autoscaler-75994c7b9c-qthl6         1/1     Running   0          61m
+kube-system            coredns-59b69b4849-8mkft                    1/1     Running   0          65m
+kube-system            coredns-59b69b4849-gvcvm                    1/1     Running   0          65m
+kube-system            kube-proxy-jlwt7                            1/1     Running   0          61m
+kube-system            kube-proxy-txn58                            1/1     Running   0          62m
+kube-system            kube-proxy-w7skd                            1/1     Running   0          62m
+kube-system            metrics-server-d9b45599b-5t8g5              1/1     Running   0          60m
+kubernetes-dashboard   kubernetes-dashboard-7cb9b6f988-4h549       1/1     Running   0          60m
+kubernetes-dashboard   kubernetes-metrics-scraper-97f978cc-hvfx6   1/1     Running   0          60m
+```
+
+Run following command to get worker nodes:
+
+```sh
+kubectl get nodes
+```
+
+Output:
+
+```sh
+ip-172-16-1-53.eu-central-1.compute.internal   Ready    <none>   68m   v1.18.20-eks-8c579e
+ip-172-16-2-7.eu-central-1.compute.internal    Ready    <none>   68m   v1.18.20-eks-8c579e
+ip-172-16-3-38.eu-central-1.compute.internal   Ready    <none>   68m   v1.18.20-eks-8c579e
+```
+
+Run following command to check deployments:
+
+```sh
+kubectl get deployments --all-namespaces 
+```
+
+Output:
+
+```sh
+NAMESPACE              NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
+application            flask-api                    1/1     1            1           8m57s
+kube-system            cluster-autoscaler           1/1     1            1           68m
+kube-system            coredns                      2/2     2            2           73m
+kube-system            metrics-server               1/1     1            1           68m
+kubernetes-dashboard   kubernetes-dashboard         1/1     1            1           67m
+kubernetes-dashboard   kubernetes-metrics-scraper   1/1     1            1           67m
+```
+
+Run following command to get application services:
+
+```sh
+kubectl get services --all-namespaces
+```
+
+Output:
+
+```sh
+NAME                 TYPE           CLUSTER-IP       EXTERNAL-IP                                                                 PORT(S)        AGE
+flask-api-external   LoadBalancer   10.100.124.106   a88b774cbdcdc43fd81629c4441b4543-746255534.eu-central-1.elb.amazonaws.com   80:30424/TCP   68m
+flask-api-internal   ClusterIP      10.100.30.144    <none>                                                                      8181/TCP       68m
+```
+
+In the above output you can use your EXTERNAL-IP value to check the api.
+
+## End Point for the API ##
+
+Following end point should be ready to use after a successful infrastructure deployment.
+
+`<APP_NAME>.<NAMESPACE>.<DOMAINNAME>/replace/api`
+
+Ex: `http://flask-api.leia.dev.leiarenee.io:80/api/replace`
+
+Not: `<NAMESPACE>` and `<DOMAINNAME>` are defined in `override.file`. `<APP_NAME>` is defined in global replacement file. Note that `<NAMESPACE>` is used rather than `<SUB_DOMAIN>` definition.
+
+## Testing Api ##
+
+Run: `./test.sh` in root directory.
+
+Output:
+
+```sh
+
+Infrastructure test initialized.
+
+TEST 1
+Checking if the port is open by netcat
+Checking if flask-api.leia.dev.leiarenee.io:80 responds... (Timeout 5 seconds)
+connection succesfull flask-api.leia.dev.leiarenee.io:80
+
+--------------------------------------
+
+TEST 2
+Testing http://flask-api.leia.dev.leiarenee.io:80/api/replace by curl.
+
+Sending 
+{
+  "test" : "The analysts of ABN did a great job!"
+}
+
+Result:
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   104  100    55  100    49    427    381 --:--:-- --:--:-- --:--:--   433
+{
+  "result": "The analysts of ABN Amro did a great job!"
+}
+
+--------------------------------------
+
+TEST 3
+Sending 
+{
+  "test" : "Abn is one of the largest banks in Netherlands. aBN amro's annual budget is ... ING is a global organization. InG Bank is in fortune 500 companies. VolksBank , TriodoS and raBo are anothers as aBn"
+}
+
+Result:
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   446  100   237  100   209   1734   1529 --:--:-- --:--:-- --:--:--  1742
+{
+  "result": "ABN Amro is one of the largest banks in Netherlands. ABN Amro's annual budget is ... ING Bank is a global organization. ING Bank is in fortune 500 companies. de Volksbank , Triodos Bank and Rabobank are anothers as ABN Amro"
+}
+
+Test Ended Succesfully.
+```
+
+## Deployments from directly YAML Description Files ##
+
+Kubernetes uses `YAML` description files to create pods, services, deployments etc... However terraform uses HCL by means of [Terraform Kubernetes Provider](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs). To have a single source of truth for both terraform and `kubectl` commands and keep simplicity of sourcing from YAML description files, we use [terraform-kubernetes-yaml](https://github.com/leiarenee/terraform-kubernetes-yaml) Library. It includes a python script which downloads latest provider then creates and updates terraform conversion files according to the provider data.
+
+## Infrastructure Summary ##
+
+Following infrastructure is deployed by infrastructure as code using terragrunt and terraform.
+
+* Codebuild Project
+* ECR Repository
+* VPC
+* EKS K8s Cluster
+  * Namespace
+  * Services
+  * Deployments
+* Route53 Cnames
+
+## Conclusion ##
+
+Using infrastructure as code has a lot of benefits. It provides us cloning our infrastructure into different environments with custom parameters easily. Using branches rather than folders in environments we can branch and merge back to parent environments. More over we can utilize pull request based testing and deployment strategies such as blue-green deployment and A-B testing.
+
+---
+
+### Contact Information ###
+
+Leia Renée
+
+AWS Cloud Engineer
+
+* Web : [renée.io](https://renée.io/)
+* E-mail : [leiarenee20@gmail.com](mailto:leiarenee20@gmail.com)
+* LinkedIn: [linkedin.com/in/leia-renee](https.//www.linkedin.com/in/leia-renee)
+* Github : [github.com/leiarenee](https://github.com/leiarenee)
+* Calendly: [calendly.com/leiarenee](https://calendly.com/leiarenee)
+* References: [drive folder](https://drive.google.com/drive/folders/1ggK3hrvO2ryWi5Xx6-THTY4IVz3ENdSd)
