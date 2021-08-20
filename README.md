@@ -9,6 +9,84 @@ This repository is designed to demonstrate deploying [infrastructure as code (IA
 * AWS Client > v2.0
 * Jq
   
+## Deploying the Infrastructure ##
+
+You should have an empty sub organizational account with a Route53 hosted zone created to test this code. 
+Duplicate the [sample_override.hcl](infrastructure/sample_override.hcl) file and rename it as `.override.hcl`
+Enter the parameters in `override.hcl` file.
+
+Run:
+
+```sh
+./apply-all.sh
+```
+
+Output:
+
+[Asciinema Terminal Output](https://asciinema.org/a/431385)
+
+## End Point for the API ##
+
+Following end point should be ready to use after a successful infrastructure deployment.
+
+`<APP_NAME>.<DOMAINNAME>/replace/api`
+
+Ex: `http://flask-api.leia.dev.leiarenee.io/api/replace`
+
+Not: `<DOMAINNAME>` is defined in `override.file`. `<APP_NAME>` is defined in global replacement file.
+
+## Testing Api ##
+
+Run: `./test.sh` in root directory.
+
+Output:
+
+```sh
+
+Infrastructure test initialized.
+
+TEST 1
+Checking if the port is open by netcat
+Checking if flask-api.leia.dev.leiarenee.io:80 responds... (Timeout 5 seconds)
+connection succesfull flask-api.leia.dev.leiarenee.io:80
+
+--------------------------------------
+
+TEST 2
+Testing http://flask-api.leia.dev.leiarenee.io:80/api/replace by curl.
+
+Sending 
+{
+  "test" : "The analysts of ABN did a great job!"
+}
+
+Result:
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   104  100    55  100    49    427    381 --:--:-- --:--:-- --:--:--   433
+{
+  "result": "The analysts of ABN Amro did a great job!"
+}
+
+--------------------------------------
+
+TEST 3
+Sending 
+{
+  "test" : "Abn is one of the largest banks in Netherlands. aBN amro's annual budget is ... ING is a global organization. InG Bank is in fortune 500 companies. VolksBank , TriodoS and raBo are anothers as aBn"
+}
+
+Result:
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   446  100   237  100   209   1734   1529 --:--:-- --:--:-- --:--:--  1742
+{
+  "result": "ABN Amro is one of the largest banks in Netherlands. ABN Amro's annual budget is ... ING Bank is a global organization. ING Bank is in fortune 500 companies. de Volksbank , Triodos Bank and Rabobank are anothers as ABN Amro"
+}
+
+Test Ended Succesfully.
+```
+
 ## Why Gitops Multi-Branch Environments? ##
 
 In conventional approach environment configurations such as production, staging and testing are stored in different folders. This approach has multiple caveats. Any change that is to be implemented across globally in configuration files should be repeated within each environment. Having environments in different branches rather than folders overcomes this issue by using git's standard and reliable mechanisms of merging and branching. Also in contemporary systems with multiple developers, Q/A Stuff, and other stuff who wants to access and test different versions and features of the software at same time creates long queues and time losses if there is one global staging and testing environment. Installing infrastructure and application code synchronously as a complete package into separate isolated environments sourcing from dedicated branches, developers and Q/A Stuff experiences testing new features comfortably without hesitating to damage shared resources. Since these environments are temporary and isolated, infrastructure created within these environments are purged either automatically by a [Cron Job](https://en.wikipedia.org/wiki/Cron) or manually by the user his/her self in order to avoid cloud overcharges. Moreover pull Request mechanism of Git, adds another layer to the system for securely and reliably merging new features into staging and production environments by integrating automation pipeline with Git. [Atlantis](https://www.runatlantis.io/) is a popular open source application to be used for Terraform Pull Request Automation.
@@ -20,7 +98,7 @@ Please refer to following documents to get more insight.
 
 ## How It Works? ##
 
-Root folder for the cloud deployments, is `infrastructure`. [terragrunt.hcl](infrastructure/terragrunt.hcl) under this folder is used as a parent template file to be included in each configuration where every sub folder which includes a `terragrunt.hcl` file is a source for a separate infrastructure. When [deploy-all.sh](deploy-all.sh) command is run under root folder, it enters into [infrastructure/dynamic](infrastructure/dynamic) folder then runs `terragrunt run-all apply` within the current folder. After running, terragrunt scans all sub folders and detects `terragrunt.hcl` file locations. It prepares a dependency graph and prepares an execution plan then starts the deployments either in parallel or in sequential respecting dependency information.
+Root folder for the cloud deployments, is `infrastructure`. [terragrunt.hcl](infrastructure/terragrunt.hcl) under this folder is used as a parent template file to be included in each configuration where every sub folder which includes a `terragrunt.hcl` file is a source for a separate infrastructure. When [apply-all.sh](apply-all.sh) command is run under root folder, it enters into [infrastructure/dynamic](infrastructure/dynamic) folder then runs `terragrunt run-all apply` within the current folder. After running, terragrunt scans all sub folders and detects `terragrunt.hcl` file locations. It prepares a dependency graph and prepares an execution plan then starts the deployments either in parallel or in sequential respecting dependency information.
 
 Multi-branch configuration file for the multi branch environments is [accounts.hcl](infrastructure/account.hcl). AWS Profile name and other parameters such as kubernetes cluster name, Route53 DNS Zone Id, Domain and sub domain names are configured here.
 
@@ -47,6 +125,8 @@ When run under automation platform in the cloud, branch name (which is actually 
 Sample `infrastructure/.override` file:
 
 ```hcl
+# Override paramaters for your own account
+
 locals {
   #On/Off
   override_active = true
@@ -61,10 +141,24 @@ locals {
     
     parameters = {
       DOMAIN         = "dev.leiarenee.io"
-      SUBDOMAIN      = "test"
-      NAMESPACE      = "leia"
+      SUBDOMAIN      = "leia"
       DNS_ZONE_ID    = "Z0765183D4X12U90SGO6"
       CLUSTER        = "k8s-cluster"
+    }
+  }
+
+  # Testing Account
+  testing = {
+    account_name   = "testing"
+    aws_account_id = "553688522943"
+    aws_profile    = "testing"
+    bucket_suffix  = ""
+
+    parameters = {
+      DOMAIN         = "dev.leiarenee.io"
+      SUBDOMAIN      = "testing"
+      DNS_ZONE_ID    = "Z00140663TMWUSEB0C8DN"
+      CLUSTER        = "testing-cluster"
     }
   }
 
@@ -315,68 +409,6 @@ flask-api-internal   ClusterIP      10.100.30.144    <none>                     
 ```
 
 In the above output you can use your EXTERNAL-IP value to check the api.
-
-## End Point for the API ##
-
-Following end point should be ready to use after a successful infrastructure deployment.
-
-`<APP_NAME>.<NAMESPACE>.<DOMAINNAME>/replace/api`
-
-Ex: `http://flask-api.leia.dev.leiarenee.io:80/api/replace`
-
-Not: `<NAMESPACE>` and `<DOMAINNAME>` are defined in `override.file`. `<APP_NAME>` is defined in global replacement file. Note that `<NAMESPACE>` is used rather than `<SUB_DOMAIN>` definition.
-
-## Testing Api ##
-
-Run: `./test.sh` in root directory.
-
-Output:
-
-```sh
-
-Infrastructure test initialized.
-
-TEST 1
-Checking if the port is open by netcat
-Checking if flask-api.leia.dev.leiarenee.io:80 responds... (Timeout 5 seconds)
-connection succesfull flask-api.leia.dev.leiarenee.io:80
-
---------------------------------------
-
-TEST 2
-Testing http://flask-api.leia.dev.leiarenee.io:80/api/replace by curl.
-
-Sending 
-{
-  "test" : "The analysts of ABN did a great job!"
-}
-
-Result:
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100   104  100    55  100    49    427    381 --:--:-- --:--:-- --:--:--   433
-{
-  "result": "The analysts of ABN Amro did a great job!"
-}
-
---------------------------------------
-
-TEST 3
-Sending 
-{
-  "test" : "Abn is one of the largest banks in Netherlands. aBN amro's annual budget is ... ING is a global organization. InG Bank is in fortune 500 companies. VolksBank , TriodoS and raBo are anothers as aBn"
-}
-
-Result:
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100   446  100   237  100   209   1734   1529 --:--:-- --:--:-- --:--:--  1742
-{
-  "result": "ABN Amro is one of the largest banks in Netherlands. ABN Amro's annual budget is ... ING Bank is a global organization. ING Bank is in fortune 500 companies. de Volksbank , Triodos Bank and Rabobank are anothers as ABN Amro"
-}
-
-Test Ended Succesfully.
-```
 
 ## Deployments from directly YAML Description Files ##
 
