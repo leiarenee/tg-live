@@ -1,4 +1,4 @@
-# TMNL Live Infrastructure #
+# TG Live Infrastructure #
 
 This repository is designed to demonstrate deploying [infrastructure as code (IAC)](https://en.wikipedia.org/wiki/Infrastructure_as_code) into dynamic environments as multi-branch [Gitops](https://www.gitops.tech/) architecture using [Terragrunt](https://terragrunt.gruntwork.io/), [Terraform](https://www.terraform.io/) and [AWS Organization](https://aws.amazon.com/organizations/). It heavily utilizes [Terragrunt](https://terragrunt.gruntwork.io/) as main automation pipeline framework. [Terragrunt](https://terragrunt.gruntwork.io/) is a thin wrapper that provides extra tools for keeping your configurations [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself), working with multiple [Terraform](https://www.terraform.io/) modules, and managing remote state.
 
